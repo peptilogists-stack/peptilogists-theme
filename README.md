@@ -147,6 +147,7 @@ For CSS and JavaScript, we recommend using the [`{% stylesheet %}`](https://shop
 ### `critical.css`
 
 This theme explicitly separates essential CSS necessary for every page into a dedicated `critical.css` file.
+test deploy
 
 ## Contributing
 
