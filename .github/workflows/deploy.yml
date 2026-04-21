@@ -4,17 +4,27 @@ on:
   push:
     branches:
       - main
+      - dev
 
 jobs:
   deploy:
-    name: Deploy to Shopify
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Deploy Theme to Shopify
+      - name: Deploy to DEV theme
+        if: github.ref == 'refs/heads/dev'
+        uses: shopify/cli-action@v2
+        with:
+          command: theme push
+        env:
+          SHOPIFY_STORE: ${{ secrets.SHOPIFY_STORE }}
+          SHOPIFY_PASSWORD: ${{ secrets.SHOPIFY_PASSWORD }}
+          SHOPIFY_THEME_ID: ${{ secrets.SHOPIFY_THEME_ID_DEV }}
+
+      - name: Deploy to LIVE theme
+        if: github.ref == 'refs/heads/main'
         uses: shopify/cli-action@v2
         with:
           command: theme push --allow-live
