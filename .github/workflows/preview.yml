@@ -1,0 +1,53 @@
+name: Shopify Preview
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Shopify CLI
+        run: |
+          npm install -g @shopify/cli @shopify/theme
+
+      - name: Install jq
+        run: sudo apt-get install -y jq
+
+      - name: Create / Update Preview Theme
+        id: preview
+        run: |
+          THEME_NAME="PR-${{ github.event.number }}"
+
+          # Create new theme
+          THEME_ID=$(shopify theme push \
+            --store $SHOPIFY_STORE \
+            --access-token $SHOPIFY_ACCESS_TOKEN \
+            --unpublished \
+            --theme-name "$THEME_NAME" \
+            --json | jq -r '.theme.id')
+
+          echo "theme_id=$THEME_ID" >> $GITHUB_OUTPUT
+
+          PREVIEW_URL="https://$SHOPIFY_STORE/?preview_theme_id=$THEME_ID"
+          echo "preview_url=$PREVIEW_URL" >> $GITHUB_OUTPUT
+        env:
+          SHOPIFY_STORE: ${{ secrets.SHOPIFY_STORE }}
+          SHOPIFY_ACCESS_TOKEN: ${{ secrets.SHOPIFY_ACCESS_TOKEN }}
+
+      - name: Comment Preview Link
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const url = "${{ steps.preview.outputs.preview_url }}";
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `🧪 Preview ready:\n${url}`
+            })

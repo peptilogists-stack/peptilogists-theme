@@ -1,34 +1,25 @@
-name: Shopify Deploy
+- name: Deploy Theme
+  run: |
+    if [ "${GITHUB_REF##*/}" = "main" ]; then
+      THEME_ID=$SHOPIFY_THEME_ID
+      echo "🚀 Deploying to LIVE theme"
+    else
+      THEME_ID=$SHOPIFY_THEME_ID_DEV
+      echo "🧪 Deploying to DEV theme"
+    fi
 
-on:
-  push:
-    branches:
-      - main
-      - dev
+    shopify theme push \
+      --store $SHOPIFY_STORE \
+      --access-token $SHOPIFY_ACCESS_TOKEN \
+      --theme $THEME_ID \
+      --allow-live
+  env:
+    SHOPIFY_STORE: ${{ secrets.SHOPIFY_STORE }}
+    SHOPIFY_ACCESS_TOKEN: ${{ secrets.SHOPIFY_ACCESS_TOKEN }}
+    SHOPIFY_THEME_ID: ${{ secrets.SHOPIFY_THEME_ID }}
+    SHOPIFY_THEME_ID_DEV: ${{ secrets.SHOPIFY_THEME_ID_DEV }}
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Deploy to DEV theme
-        if: github.ref == 'refs/heads/dev'
-        uses: shopify/cli-action@v2
-        with:
-          command: theme push
-        env:
-          SHOPIFY_STORE: ${{ secrets.SHOPIFY_STORE }}
-          SHOPIFY_PASSWORD: ${{ secrets.SHOPIFY_PASSWORD }}
-          SHOPIFY_THEME_ID: ${{ secrets.SHOPIFY_THEME_ID_DEV }}
-
-      - name: Deploy to LIVE theme
-        if: github.ref == 'refs/heads/main'
-        uses: shopify/cli-action@v2
-        with:
-          command: theme push --allow-live
-        env:
-          SHOPIFY_STORE: ${{ secrets.SHOPIFY_STORE }}
-          SHOPIFY_PASSWORD: ${{ secrets.SHOPIFY_PASSWORD }}
-          SHOPIFY_THEME_ID: ${{ secrets.SHOPIFY_THEME_ID }}
+      - name: Notify on failure
+        if: failure()
+        run: echo "❌ Deploy failed. Check logs."
+    
